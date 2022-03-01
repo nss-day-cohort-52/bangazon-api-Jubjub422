@@ -8,10 +8,10 @@ from rest_framework.exceptions import ValidationError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from bangazon_api.helpers import STATE_NAMES
-from bangazon_api.models import Product, Store, Category, Order, Rating, Recommendation
+from bangazon_api.models import Product, Store, Category, Order, Rating, Recommendation, Like
 from bangazon_api.serializers import (
     ProductSerializer, CreateProductSerializer, MessageSerializer,
-    AddProductRatingSerializer, AddRemoveRecommendationSerializer)
+    AddProductRatingSerializer, AddRemoveRecommendationSerializer, LikeProductSerializer)
 from django.db.models import Q
 
 
@@ -169,6 +169,7 @@ class ProductView(ViewSet):
         name = request.query_params.get('name', None)
         location = request.query_params.get('location', None)
         min_price = request.query_params.get('min_price', None)
+        liked = request.query_params.get('liked', None)
 
         if number_sold:
             products = products.annotate(
@@ -187,7 +188,6 @@ class ProductView(ViewSet):
             
         if location is not None:
             products = products.filter(location__icontains=location)
-            
         if min_price is not None:
             products = products.filter(price__gt=min_price)
 
@@ -353,3 +353,57 @@ class ProductView(ViewSet):
             )
 
         return Response({'message': 'Rating added'}, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        request_body=LikeProductSerializer(),
+        responses={
+            204: openapi.Response(
+                description="No content, product successfully updated",
+                schema=ProductSerializer()
+            ),
+            400: openapi.Response(
+                description="Validation Error",
+                schema=MessageSerializer()
+            ),
+            404: openapi.Response(
+                description="product not found",
+                schema=MessageSerializer()
+            ),
+        }
+    )
+    @action(methods=['post'], detail=True)
+    def like(self, request, pk):
+        """Like a product for a user"""
+        try:
+            like = Like.objects.create(
+                customer = request.auth.user,
+                store = Store.objects.get(pk=pk)
+            )
+            serializer = LikeProductSerializer(like)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as ex:
+            return Response({'message': ex.args[0]}, status=status.HTTP_400_BAD_REQUEST)
+            
+    @swagger_auto_schema(
+        method='DELETE',
+        responses={
+            201: openapi.Response(
+                description="Returns message that product was deleted from the order",
+                schema=MessageSerializer()
+            ),
+            404: openapi.Response(
+                description="Either the Product or Order was not found",
+                schema=MessageSerializer()
+            ),
+        }
+    )
+    @action(methods=['delete'], detail=True)
+    def unlike(self, request, pk):
+        """Unlike a store for a user"""
+        try:
+            like = Like.objects.get(product_id=pk, customer=request.auth.user)
+            like.delete()
+            return Response(None, status=status.HTTP_204_NO_CONTENT)
+        except ValidationError as ex:
+            return Response({'message': ex.args[0]}, status=status.HTTP_400_BAD_REQUEST)
+            

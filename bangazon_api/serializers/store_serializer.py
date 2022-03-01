@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from bangazon_api.models import Store
+from bangazon_api.models import Store, Favorite
 
 
 class StoreUserSerializer(serializers.ModelSerializer):
@@ -22,3 +22,9 @@ class StoreSerializer(serializers.ModelSerializer):
 class AddStoreSerializer(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField()
+    
+class FavoriteStoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ('id', 'store', 'customer')
+        depth = 1
