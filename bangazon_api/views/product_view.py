@@ -169,8 +169,7 @@ class ProductView(ViewSet):
         name = request.query_params.get('name', None)
         location = request.query_params.get('location', None)
         min_price = request.query_params.get('min_price', None)
-        liked = request.query_params.get('liked', None)
-
+        
         if number_sold:
             products = products.annotate(
                 order_count=Count('orders', filter=~Q(orders__payment_type=None))
@@ -377,7 +376,7 @@ class ProductView(ViewSet):
         try:
             like = Like.objects.create(
                 customer = request.auth.user,
-                store = Store.objects.get(pk=pk)
+                product = Product.objects.get(pk=pk)
             )
             serializer = LikeProductSerializer(like)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -407,3 +406,26 @@ class ProductView(ViewSet):
         except ValidationError as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_400_BAD_REQUEST)
             
+    @swagger_auto_schema(
+        method='GET',
+        responses={
+            200: openapi.Response(
+                description="The requested likes",
+                schema=LikeProductSerializer()
+            ),
+            404: openapi.Response(
+                description="Likes not found",
+                schema=MessageSerializer()
+            ),
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path="liked")
+    def my_likes(self, request):
+        """Get the current user's likes profile"""
+        try:
+            user = request.auth.user
+            likes = Like.objects.filter(customer_id=user)
+            serializer = LikeProductSerializer(likes, many=True)
+            return Response(serializer.data)
+        except Like.DoesNotExist as ex:
+            return Response({'message': ex.args[0]}, status=status.HTTP_404_NOT_FOUND)
