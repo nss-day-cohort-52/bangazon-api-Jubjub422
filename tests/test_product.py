@@ -1,3 +1,4 @@
+
 import random
 import faker_commerce
 from faker import Faker
@@ -14,7 +15,7 @@ from bangazon_api.models.product import Product
 class ProductTests(APITestCase):
     def setUp(self):
         """
-
+            Seed the database
         """
         call_command('seed_db', user_count=2)
         self.user1 = User.objects.filter(store__isnull=False).first()
@@ -75,3 +76,33 @@ class ProductTests(APITestCase):
         response = self.client.get('/api/products')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), Product.objects.count())
+        
+    def test_delete_product(self):
+        """
+        Ensure we can delete an existing product
+        """
+        #New instance of a product
+        category = Category.objects.first()
+        store = self.user1.store
+        
+        product = Product()
+        product.name = "Bed"
+        product.price = random.randint(200, 2000)
+        product.description= "Super comfy! Super sleepy!"
+        product.quantity = random.randint(10, 30)
+        product.store = store
+        product.location = random.choice(STATE_NAMES)
+        product.image_path = ""
+        product.category = category
+       
+        #save the product to the database
+        product.save()
+        #define the url path for the product to be used later
+        url= f'/api/products/{product.id}'
+        #initiate delete and capture the response
+        response = self.client.delete(url)
+        #assert the response returns a 204 status code
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        #now check if the product is really deleted by initiating a GET from the same url
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
