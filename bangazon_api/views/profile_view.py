@@ -15,7 +15,7 @@ class ProfileView(ViewSet):
         method='GET',
         responses={
             200: openapi.Response(
-                description="The requested product",
+                description="The requested profile",
                 schema=UserSerializer()
             ),
             404: openapi.Response(

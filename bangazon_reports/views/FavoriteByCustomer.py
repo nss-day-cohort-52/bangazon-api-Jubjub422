@@ -36,11 +36,9 @@ class FavoriteStoreList(View):
                     ),
                     None
                 )
-                if user_dict:
-                    # If the user_dict is already in the games_by_user list, append the game to the games list
+                if user_dict:                    
                     user_dict['store'].append(store)
                 else:
-                    # If the user is not on the games_by_user list, create and add the user to the list
                     favorites_by_user.append({
                         "customer_id": row['customer_id'],
                         "customer_name": row['customer_name'],

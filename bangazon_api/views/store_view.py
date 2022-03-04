@@ -15,7 +15,7 @@ class StoreView(ViewSet):
         request_body=AddStoreSerializer(),
         responses={
             201: openapi.Response(
-                description="The requested product",
+                description="The requested store",
                 schema=StoreSerializer()
             ),
             400: openapi.Response(
